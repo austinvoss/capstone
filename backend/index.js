@@ -1,7 +1,9 @@
 const express = require("express");
+const bodyParser = require("body-parser");
 const { Client } = require("pg");
 
 const app = express();
+app.use(bodyParser.json());
 
 const client = new Client({
   host: "localhost",
@@ -21,10 +23,63 @@ async function connectDb() {
 
 connectDb();
 
-app.get("/ping", (req, res) => {
-  res.send("pong");
-});
+// Product Routes
+app.get("/products", getProducts);
+app.post("/products", createProduct);
+app.put("/products/:id", updateProduct);
+app.delete("/products/:id", deleteProduct);
 
+// Product Controllers
+async function getProducts(req, res) {
+  try {
+    const results = await client.query("SELECT * FROM products");
+    res.json(results.rows);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+async function createProduct(req, res) {
+  try {
+    const { name, price } = req.body;
+    const results = await client.query(
+      "INSERT INTO products (name, price) VALUES ($1, $2) RETURNING *",
+      [name, price]
+    );
+    res.json(results.rows[0]);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+async function updateProduct(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, price } = req.body;
+    const results = await client.query(
+      "UPDATE products SET name = $1, price = $2 WHERE id = $3 RETURNING *",
+      [name, price, id]
+    );
+    res.json(results.rows[0]);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+async function deleteProduct(req, res) {
+  try {
+    const { id } = req.params;
+    const results = await client.query(
+      "DELETE FROM products WHERE id = $1 RETURNING *",
+      [id]
+    );
+    res.json(results.rows[0]);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+// Server Listening
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
