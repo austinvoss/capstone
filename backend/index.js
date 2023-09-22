@@ -35,6 +35,15 @@ app.delete("/products/:id", deleteProduct);
 app.post("/signup", signup);
 app.post("/login", login);
 
+// Cart Routes
+app.post("/cart", addToCart);
+app.get("/cart", getCart);
+app.put("/cart/:id", updateCartItem);
+app.delete("/cart/:id", deleteCartItem);
+
+// Order Routes
+app.post("/orders", createOrder);
+
 // Product Controllers
 async function getProducts(req, res) {
   try {
@@ -115,6 +124,82 @@ async function login(req, res) {
       res.json({ token });
     } else {
       res.status(401).send("Invalid credentials");
+    }
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+// Cart Controllers
+async function addToCart(req, res) {
+  try {
+    const { userId, productId, quantity } = req.body;
+    const results = await client.query(
+      "INSERT INTO cart (userId, productId, quantity) VALUES ($1, $2, $3) RETURNING *",
+      [userId, productId, quantity]
+    );
+    res.json(results.rows[0]);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+async function getCart(req, res) {
+  try {
+    const { userId } = req.query;
+    const results = await client.query("SELECT * FROM cart WHERE userId = $1", [
+      userId,
+    ]);
+    res.json(results.rows);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+async function updateCartItem(req, res) {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body;
+    const results = await client.query(
+      "UPDATE cart SET quantity = $1 WHERE id = $2 RETURNING *",
+      [quantity, id]
+    );
+    res.json(results.rows[0]);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+async function deleteCartItem(req, res) {
+  try {
+    const { id } = req.params;
+    const results = await client.query(
+      "DELETE FROM cart WHERE id = $1 RETURNING *",
+      [id]
+    );
+    res.json(results.rows[0]);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+}
+
+// Order Controllers
+async function createOrder(req, res) {
+  try {
+    const { userId } = req.body;
+    const cartResults = await client.query(
+      "SELECT * FROM cart WHERE userId = $1",
+      [userId]
+    );
+    if (cartResults.rows.length > 0) {
+      const orderResults = await client.query(
+        "INSERT INTO orders (userId, products) VALUES ($1, $2) RETURNING *",
+        [userId, JSON.stringify(cartResults.rows)]
+      );
+      await client.query("DELETE FROM cart WHERE userId = $1", [userId]);
+      res.json(orderResults.rows[0]);
+    } else {
+      res.status(400).send("Cart is empty");
     }
   } catch (err) {
     res.status(500).send("Server error");
