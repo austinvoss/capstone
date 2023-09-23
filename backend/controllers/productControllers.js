@@ -1,11 +1,29 @@
+const { client } = require("../db/connectDB");
+
 async function getProducts(req, res) {
   try {
     const results = await client.query("SELECT * FROM products");
     res.json(results.rows);
   } catch (err) {
+    console.error("Server Error:", err);
     res.status(500).send("Server error");
   }
 }
+
+const getProductById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `SELECT * FROM products WHERE id = ${id}`;
+    const { rows } = await client.query(query);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
 async function createProduct(req, res) {
   try {
@@ -47,4 +65,10 @@ async function deleteProduct(req, res) {
   }
 }
 
-module.exports = { getProducts, createProduct, updateProduct, deleteProduct };
+module.exports = {
+  getProducts,
+  createProduct,
+  getProductById,
+  updateProduct,
+  deleteProduct,
+};
