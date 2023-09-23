@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 const { connectDb } = require("./db/connectDB"); // Assuming connectDB.js is in the same directory
 
 const userRoutes = require("./routes/userRoutes");
@@ -9,6 +10,7 @@ const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors()); // Enable CORS for all routes
 
 // Connect to the database
 connectDb();

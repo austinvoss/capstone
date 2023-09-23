@@ -7,16 +7,13 @@ const client = new Client({
   database: "voss",
 });
 
-async function connectDb() {
+const connectDb = async () => {
   try {
     await client.connect();
     console.log("Connected to the database");
   } catch (err) {
     console.error("Failed to connect to the database", err);
   }
-}
-
-module.exports = {
-  client,
-  connectDb,
 };
+
+module.exports = { connectDb, client };
